@@ -7,65 +7,61 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
 # --- إعدادات الصفحة ---
-st.set_page_config(layout="wide", page_title="Mr. Ibrahim Math Quiz")
+st.set_page_config(layout="wide", page_title="Math Quiz - Mr. Ibrahim")
 
-# --- CSS: تنسيق الاسم، الاتجاهات، ورابط الواتس أب ---
+# --- CSS: تنسيق الاسم (واتساب)، الاتجاهات، الصناديق ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cairo:wght@600&display=swap');
 
-    /* رابط الواتس أب (تنسيق الاسم كزر) */
-    .whatsapp-link {
-        text-decoration: none !important;
+    /* رابط الواتس أب (الاسم كزر) */
+    .whatsapp-btn {
+        text-decoration: none;
         display: block;
         text-align: center;
         transition: transform 0.2s;
-    }
-    .whatsapp-link:hover {
-        transform: scale(1.05);
         cursor: pointer;
     }
-
+    .whatsapp-btn:hover {
+        transform: scale(1.02);
+    }
+    
     /* تنسيق اسم المستر */
     .branding-header {
         font-family: 'Great Vibes', cursive;
-        font-size: 55px;
-        text-align: center;
+        font-size: 60px;
         background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 5px;
+        margin-bottom: 0px;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        padding: 10px;
-        width: 100%;
+        font-weight: bold;
     }
     
-    .contact-subtext {
-        text-align: center;
-        color: #2a5298;
+    .sub-text {
         font-family: 'Cairo', sans-serif;
-        font-size: 14px;
+        color: #2a5298;
+        font-size: 16px;
         margin-bottom: 30px;
     }
 
-    /* صناديق الأسئلة */
-    .question-box {
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    /* صناديق النصوص (بدون معادلات داخلها لتجنب الأخطاء) */
+    .text-box {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 5px;
         font-size: 20px;
-        line-height: 1.8;
+        font-weight: bold;
+        color: #2c3e50;
     }
     
-    /* الصندوق العربي: اتجاه يمين، لكن المعادلات يسار */
+    /* الصندوق العربي */
     .rtl-box {
         direction: rtl;
         text-align: right;
         font-family: 'Cairo', sans-serif;
-        background-color: #fcfcfc;
-        border-right: 6px solid #2980b9;
-        color: #2c3e50;
+        background-color: #f8f9fa;
+        border-right: 5px solid #2980b9;
     }
     
     /* الصندوق الإنجليزي */
@@ -73,16 +69,8 @@ st.markdown("""
         direction: ltr;
         text-align: left;
         font-family: sans-serif;
-        background-color: #fcfcfc;
-        border-left: 6px solid #2980b9;
-        color: #2c3e50;
-    }
-
-    /* إجبار المعادلات داخل النص العربي على الاتجاه الصحيح */
-    .rtl-box .katex {
-        direction: ltr;
-        unicode-bidi: embed;
-        font-family: 'Times New Roman', serif; 
+        background-color: #f8f9fa;
+        border-left: 5px solid #2980b9;
     }
 
     /* الأزرار */
@@ -105,9 +93,9 @@ st.markdown("""
     /* بطاقة النتيجة */
     .final-card {
         text-align: center;
-        padding: 50px;
+        padding: 40px;
         background-color: #d4edda;
-        border-radius: 20px;
+        border-radius: 15px;
         border: 2px solid #c3e6cb;
         color: #155724;
         font-family: 'Cairo', sans-serif;
@@ -117,12 +105,12 @@ st.markdown("""
 
 # --- دالة العنوان (مع رابط واتس أب) ---
 def show_header():
-    # الرابط يوجه لرقمك مباشرة
+    # عند الضغط يتحول للواتس أب
     whatsapp_url = "https://wa.me/971502188644"
     st.markdown(f"""
-    <a href="{whatsapp_url}" target="_blank" class="whatsapp-link" title="تواصل عبر واتس أب">
+    <a href="{whatsapp_url}" target="_blank" class="whatsapp-btn">
         <div class="branding-header">Mr. Ibrahim Eldabour</div>
-        <div class="contact-subtext">Click to Chat on WhatsApp | اضغط للتواصل واتس أب</div>
+        <div class="sub-text">اضغط هنا للتواصل عبر واتساب (WhatsApp)</div>
     </a>
     """, unsafe_allow_html=True)
 
@@ -152,25 +140,27 @@ def plot_textbook_graph(x, y):
     ax.plot(0, 1, "^k", transform=ax.get_xaxis_transform(), clip_on=False)
     ax.grid(True, which='both', linestyle='--', linewidth=0.5, alpha=0.5)
     
-    y_max = np.max(y)
-    y_min = np.min(y)
-    # ضبط حدود الرسم ليكون واضحاً
-    ax.set_ylim(max(y_min - 1, -5), min(y_max + 1, 5))
+    # ضبط الحدود
+    y_vals = y[np.isfinite(y)]
+    if len(y_vals) > 0:
+        y_max = np.max(y_vals)
+        y_min = np.min(y_vals)
+        ax.set_ylim(max(y_min - 1, -5), min(y_max + 1, 5))
     ax.set_xlim(-3.5, 3.5)
     
     plt.tight_layout()
     return fig
 
-# --- بنك الأسئلة (تم ضبط الرموز لتكون MathJax) ---
+# --- بنك الأسئلة (فصل النص عن المعادلة لضمان العرض الصحيح) ---
 def get_full_question_bank():
     bank = []
 
     # Q1
     bank.append({
         "id": "ex_1", "type": "algebra",
-        # السؤال العربي: النصوص عربية لكن الرموز داخل $$ لضمان التنسيق
-        "ar_text": r"حدد **نقطة الانقلاب** للدالة: $$f(x) = x^3 - 3x^2 + 4x - 1$$",
-        "en_text": r"Determine the **inflection point** of: $$f(x) = x^3 - 3x^2 + 4x - 1$$",
+        "ar_prompt": "حدد نقطة الانقلاب للدالة:",
+        "en_prompt": "Determine the inflection point of:",
+        "latex_eq": r"f(x) = x^3 - 3x^2 + 4x - 1",
         "options": [r"$(1, 1)$", r"$(1, -1)$", r"$(0, -1)$", r"None"],
         "correct_idx": 0
     })
@@ -178,8 +168,9 @@ def get_full_question_bank():
     # Q2
     bank.append({
         "id": "ex_2", "type": "algebra",
-        "ar_text": r"أوجد الفترة التي تكون فيها الدالة $$f(x) = x^4 - 6x^2 + 2x + 3$$ **مقعرة لأعلى**:",
-        "en_text": r"Find the interval where $$f(x) = x^4 - 6x^2 + 2x + 3$$ is **Concave Up**:",
+        "ar_prompt": "أوجد الفترة التي تكون فيها الدالة مقعرة لأعلى:",
+        "en_prompt": "Find the interval where the function is Concave Up:",
+        "latex_eq": r"f(x) = x^4 - 6x^2 + 2x + 3",
         "options": [
             r"$(-\infty, -1) \cup (1, \infty)$",
             r"$(-1, 1)$",
@@ -192,8 +183,9 @@ def get_full_question_bank():
     # Q3
     bank.append({
         "id": "ex_3", "type": "algebra",
-        "ar_text": r"حدد **نقاط الانقلاب** للدالة: $$f(x) = x + \frac{1}{x}$$",
-        "en_text": r"Determine the **inflection points** of: $$f(x) = x + \frac{1}{x}$$",
+        "ar_prompt": "حدد نقاط الانقلاب للدالة:",
+        "en_prompt": "Determine the inflection points of:",
+        "latex_eq": r"f(x) = x + \frac{1}{x}",
         "options": [r"None (لا توجد)", r"$(0,0)$", r"$(1,2)$", r"$(-1,-2)$"],
         "correct_idx": 0
     })
@@ -201,8 +193,9 @@ def get_full_question_bank():
     # Q4
     bank.append({
         "id": "ex_4", "type": "algebra",
-        "ar_text": r"حدد نقاط الانقلاب للدالة: $$f(x) = x + 3(1-x)^{1/3}$$",
-        "en_text": r"Identify inflection points for: $$f(x) = x + 3(1-x)^{1/3}$$",
+        "ar_prompt": "حدد نقاط الانقلاب للدالة:",
+        "en_prompt": "Identify inflection points for:",
+        "latex_eq": r"f(x) = x + 3(1-x)^{1/3}",
         "options": [r"$(1, 1)$", r"$(0, 3)$", r"$(-1, 0)$", r"None"],
         "correct_idx": 0
     })
@@ -210,13 +203,14 @@ def get_full_question_bank():
     # Q5
     bank.append({
         "id": "ex_5", "type": "algebra",
-        "ar_text": r"أوجد الإحداثيات السينية لنقاط الانقلاب للدالة $$f(x) = \sin x - \cos x$$ في الفترة $$[0, 2\pi]$$:",
-        "en_text": r"Find x-coordinates of inflection points for $$f(x) = \sin x - \cos x$$ on $$[0, 2\pi]$$:",
+        "ar_prompt": "أوجد الإحداثيات السينية لنقاط الانقلاب في الفترة $[0, 2\pi]$:",
+        "en_prompt": "Find x-coordinates of inflection points on $[0, 2\pi]$:",
+        "latex_eq": r"f(x) = \sin x - \cos x",
         "options": [
-            r"$$\frac{\pi}{4}, \frac{5\pi}{4}$$",
-            r"$$\frac{3\pi}{4}, \frac{7\pi}{4}$$",
-            r"$$\frac{\pi}{2}, \frac{3\pi}{2}$$",
-            r"$$0, \pi$$"
+            r"$\frac{\pi}{4}, \frac{5\pi}{4}$",
+            r"$\frac{3\pi}{4}, \frac{7\pi}{4}$",
+            r"$\frac{\pi}{2}, \frac{3\pi}{2}$",
+            r"$0, \pi$"
         ],
         "correct_idx": 0
     })
@@ -224,13 +218,14 @@ def get_full_question_bank():
     # Q6
     bank.append({
         "id": "ex_6", "type": "algebra",
-        "ar_text": r"حدد الفترة التي تكون فيها الدالة $$f(x) = \tan^{-1}(x^2)$$ **مقعرة لأسفل**:",
-        "en_text": r"Interval where $$f(x) = \tan^{-1}(x^2)$$ is **Concave Down**:",
+        "ar_prompt": "حدد الفترة التي تكون فيها الدالة مقعرة لأسفل:",
+        "en_prompt": "Interval where the function is Concave Down:",
+        "latex_eq": r"f(x) = \tan^{-1}(x^2)",
         "options": [
-            r"$$(-\infty, -\frac{1}{\sqrt{3}}) \cup (\frac{1}{\sqrt{3}}, \infty)$$",
-            r"$$(-\frac{1}{\sqrt{3}}, \frac{1}{\sqrt{3}})$$",
-            r"$$(0, \infty)$$",
-            r"$$(-\infty, 0)$$"
+            r"$(-\infty, -\frac{1}{\sqrt{3}}) \cup (\frac{1}{\sqrt{3}}, \infty)$",
+            r"$(-\frac{1}{\sqrt{3}}, \frac{1}{\sqrt{3}})$",
+            r"$(0, \infty)$",
+            r"$(-\infty, 0)$"
         ],
         "correct_idx": 0
     })
@@ -238,13 +233,14 @@ def get_full_question_bank():
     # Q8
     bank.append({
         "id": "ex_8", "type": "algebra",
-        "ar_text": r"حدد الفترة التي تكون فيها الدالة $$f(x) = xe^{-4x}$$ **مقعرة لأسفل**:",
-        "en_text": r"Interval where $$f(x) = xe^{-4x}$$ is **Concave Down**:",
+        "ar_prompt": "حدد الفترة التي تكون فيها الدالة مقعرة لأسفل:",
+        "en_prompt": "Interval where the function is Concave Down:",
+        "latex_eq": r"f(x) = x e^{-4x}",
         "options": [
-            r"$$(-\infty, 0.5)$$",
-            r"$$(0.5, \infty)$$",
-            r"$$(-\infty, 0)$$",
-            r"$$(0, \infty)$$"
+            r"$(-\infty, 0.5)$",
+            r"$(0.5, \infty)$",
+            r"$(-\infty, 0)$",
+            r"$(0, \infty)$"
         ],
         "correct_idx": 0
     })
@@ -252,21 +248,21 @@ def get_full_question_bank():
     # Constants Question
     bank.append({
         "id": "const_1", "type": "algebra",
-        "ar_text": r"إذا كان للدالة $$f(x) = x^3 + kx^2 + 5$$ نقطة انقلاب عند $$x=2$$، فإن قيمة الثابت $$k$$ تساوي:",
-        "en_text": r"If $$f(x) = x^3 + kx^2 + 5$$ has an inflection point at $$x=2$$, then $$k$$ equals:",
-        "options": [r"$$k = -6$$", r"$$k = -3$$", r"$$k = 3$$", r"$$k = 6$$"],
+        "ar_prompt": "إذا كان للدالة نقطة انقلاب عند $x=2$، فإن قيمة الثابت $k$ تساوي:",
+        "en_prompt": "If the function has an inflection point at $x=2$, find $k$:",
+        "latex_eq": r"f(x) = x^3 + kx^2 + 5",
+        "options": [r"$k = -6$", r"$k = -3$", r"$k = 3$", r"$k = 6$"],
         "correct_idx": 0
     })
 
-    # === Graph Questions (37-40) ===
+    # === Graph Questions (Conditions rendered separately) ===
 
     # Q37
     bank.append({
         "id": "q37", "type": "graph",
-        # تم وضع الشروط داخل aligned لترتيبها
-        "ar_text": r"""
-        **اختر الرسم الذي يحقق الشروط التالية:**
-        $$
+        "ar_prompt": "اختر الرسم البياني الذي يحقق الشروط التالية:",
+        "en_prompt": "Select the graph satisfying these conditions:",
+        "latex_eq": r"""
         \begin{aligned}
         &f(0)=0 \\
         &f'(x) > 0 \quad \text{for } x < 1 \ (x \neq -1) \\
@@ -274,19 +270,6 @@ def get_full_question_bank():
         &f''(x) > 0 \quad \text{for } |x| > 1 \\
         &f''(x) < 0 \quad \text{for } -1 < x < 0
         \end{aligned}
-        $$
-        """,
-        "en_text": r"""
-        **Select the graph satisfying these conditions:**
-        $$
-        \begin{aligned}
-        &f(0)=0 \\
-        &f'(x) > 0 \quad \text{for } x < 1 \ (x \neq -1) \\
-        &f'(x) < 0 \quad \text{for } x > 1 \\
-        &f''(x) > 0 \quad \text{for } |x| > 1 \\
-        &f''(x) < 0 \quad \text{for } -1 < x < 0
-        \end{aligned}
-        $$
         """,
         "correct_func": lambda v: -0.5*((v**4)/4 + (v**3)/3 - (v**2)/2 - v), 
         "distractors": [lambda v: v**3 - 3*v, lambda v: -(v**2) + 2, lambda v: np.sin(v)]
@@ -295,27 +278,15 @@ def get_full_question_bank():
     # Q38
     bank.append({
         "id": "q38", "type": "graph",
-        "ar_text": r"""
-        **اختر الرسم الذي يحقق الشروط التالية:**
-        $$
+        "ar_prompt": "اختر الرسم البياني الذي يحقق الشروط التالية:",
+        "en_prompt": "Select the graph satisfying these conditions:",
+        "latex_eq": r"""
         \begin{aligned}
         &f(0)=2, \quad f'(0)=1 \\
         &f'(x) > 0 \quad \forall x \\
         &f''(x) > 0 \quad \text{for } x < 0 \\
         &f''(x) < 0 \quad \text{for } x > 0
         \end{aligned}
-        $$
-        """,
-        "en_text": r"""
-        **Select the graph satisfying these conditions:**
-        $$
-        \begin{aligned}
-        &f(0)=2, \quad f'(0)=1 \\
-        &f'(x) > 0 \quad \forall x \\
-        &f''(x) > 0 \quad \text{for } x < 0 \\
-        &f''(x) < 0 \quad \text{for } x > 0
-        \end{aligned}
-        $$
         """,
         "correct_func": lambda v: 2 + np.arctan(v), 
         "distractors": [lambda v: 2 + v**3, lambda v: 2 + v**2, lambda v: 2 - np.exp(-v)]
@@ -324,25 +295,14 @@ def get_full_question_bank():
     # Q39
     bank.append({
         "id": "q39", "type": "graph",
-        "ar_text": r"""
-        **اختر الرسم الذي يحقق الشروط التالية:**
-        $$
+        "ar_prompt": "اختر الرسم البياني الذي يحقق الشروط التالية:",
+        "en_prompt": "Select the graph satisfying these conditions:",
+        "latex_eq": r"""
         \begin{aligned}
         &f(0)=0, f(-1)=-1, f(1)=1 \\
         &f'(x) > 0 \quad \text{for } x < -1, \ 0 < x < 1 \\
         &f'(x) < 0 \quad \text{for } -1 < x < 0, \ x > 1
         \end{aligned}
-        $$
-        """,
-        "en_text": r"""
-        **Select the graph satisfying these conditions:**
-        $$
-        \begin{aligned}
-        &f(0)=0, f(-1)=-1, f(1)=1 \\
-        &f'(x) > 0 \quad \text{for } x < -1, \ 0 < x < 1 \\
-        &f'(x) < 0 \quad \text{for } -1 < x < 0, \ x > 1
-        \end{aligned}
-        $$
         """,
         "correct_func": lambda v: 2*v**2 - v**4, 
         "distractors": [lambda v: v**2, lambda v: v**3, lambda v: -(v**2)]
@@ -351,25 +311,14 @@ def get_full_question_bank():
     # Q40
     bank.append({
         "id": "q40", "type": "graph",
-        "ar_text": r"""
-        **اختر الرسم الذي يحقق الشروط التالية:**
-        $$
+        "ar_prompt": "اختر الرسم البياني الذي يحقق الشروط التالية:",
+        "en_prompt": "Select the graph satisfying these conditions:",
+        "latex_eq": r"""
         \begin{aligned}
         &f(1)=0 \\
         &f'(x) < 0 \ (x < 1), \quad f'(x) > 0 \ (x > 1) \\
         &f''(x) < 0 \quad \text{everywhere } (x \neq 1)
         \end{aligned}
-        $$
-        """,
-        "en_text": r"""
-        **Select the graph satisfying these conditions:**
-        $$
-        \begin{aligned}
-        &f(1)=0 \\
-        &f'(x) < 0 \ (x < 1), \quad f'(x) > 0 \ (x > 1) \\
-        &f''(x) < 0 \quad \text{everywhere } (x \neq 1)
-        \end{aligned}
-        $$
         """,
         "correct_func": lambda v: (np.abs(v-1))**(2/3), 
         "distractors": [lambda v: (v-1)**2, lambda v: -(v-1)**2, lambda v: np.abs(v-1)]
@@ -377,20 +326,20 @@ def get_full_question_bank():
 
     return bank
 
-# --- إدارة الحالة (Session State) ---
+# --- إدارة الحالة ---
 if 'step' not in st.session_state: st.session_state['step'] = 'login'
 if 'student_name' not in st.session_state: st.session_state['student_name'] = ""
 if 'section' not in st.session_state: st.session_state['section'] = ""
 
 # ==========================================
-# 1. صفحة الدخول (LOGIN PAGE)
+# 1. صفحة الدخول
 # ==========================================
 if st.session_state['step'] == 'login':
     show_header()
     
     st.markdown("""
     <div style="text-align: center; margin-bottom: 20px; font-family: 'Cairo', sans-serif;">
-        <h3>🎓 تسجيل دخول الطالب / Student Login</h3>
+        <h3>🎓 Student Login / تسجيل دخول الطالب</h3>
     </div>
     """, unsafe_allow_html=True)
     
@@ -425,7 +374,7 @@ if st.session_state['step'] == 'login':
                 st.error("⚠️ Please enter your name. الرجاء كتابة الاسم.")
 
 # ==========================================
-# 2. صفحة الاختبار (QUIZ PAGE)
+# 2. صفحة الاختبار
 # ==========================================
 elif st.session_state['step'] == 'quiz':
     show_header()
@@ -443,16 +392,20 @@ elif st.session_state['step'] == 'quiz':
     
     st.progress((idx + 1) / len(questions))
     
-    # --- عرض السؤال ---
-    # نستخدم st.markdown مع الصناديق التي صممناها في CSS
-    # لاحظ أننا نمرر النص العربي للمعادلة (التي تحتوي على رموز MathJax)
+    # --- عرض السؤال (فصل تام بين النص واللاتكس) ---
     c1, c2 = st.columns(2)
     
-    with c1:
-        st.markdown(f'<div class="question-box ltr-box">{curr["en_text"]}</div>', unsafe_allow_html=True)
+    with c1: # English Column
+        # النص في صندوق
+        st.markdown(f'<div class="text-box ltr-box">{curr["en_prompt"]}</div>', unsafe_allow_html=True)
+        # المعادلة خارج الصندوق لضمان العرض
+        st.latex(curr['latex_eq'])
             
-    with c2:
-        st.markdown(f'<div class="question-box rtl-box">{curr["ar_text"]}</div>', unsafe_allow_html=True)
+    with c2: # Arabic Column
+        # النص العربي في صندوق RTL
+        st.markdown(f'<div class="text-box rtl-box">{curr["ar_prompt"]}</div>', unsafe_allow_html=True)
+        # المعادلة أسفله LTR تلقائياً
+        st.latex(curr['latex_eq'])
     
     # --- خلط الخيارات ---
     if st.session_state['shuffled_options'] is None:
@@ -482,10 +435,10 @@ elif st.session_state['step'] == 'quiz':
                 st.pyplot(fig, use_container_width=True)
                 btn_txt = f"Graph {i+1}"
             else:
-                # خيار نصي (معادلة)
+                # خيار نصي
                 st.write("") 
                 st.write("") 
-                btn_txt = opt['data'] # النص هو المعادلة
+                btn_txt = opt['data'] 
             
             # الأزرار
             if not st.session_state['feedback_given']:
@@ -500,7 +453,6 @@ elif st.session_state['step'] == 'quiz':
                     st.session_state['feedback_given'] = True
                     st.rerun()
             else:
-                # بعد الإجابة
                 if opt['correct']:
                     st.success("✅ Correct")
                 else:
@@ -521,7 +473,7 @@ elif st.session_state['step'] == 'quiz':
                 st.rerun()
 
 # ==========================================
-# 3. صفحة النتيجة (RESULT PAGE)
+# 3. صفحة النتيجة
 # ==========================================
 elif st.session_state['step'] == 'result':
     show_header()
